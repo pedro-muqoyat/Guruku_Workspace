@@ -1,0 +1,2 @@
+-- E2E fixture rows are provisioned by scripts/setup-e2e.js after Supabase Auth
+-- creates the test identity. Keep reset-time seed SQL free of GoTrue and E2E data.
