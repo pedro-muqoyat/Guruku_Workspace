@@ -21,6 +21,7 @@
 - [x] Edge cases are identified
 - [x] Scope is clearly bounded, including payroll calculation and external-system submission exclusions
 - [x] Dependencies and assumptions identified, including school-approved export formats
+- [x] Default Present is explicitly a form default; ESP32/WFH source, Operator TU approval, and transport calculation provenance are testable and bounded by approved school policy.
 
 ## Feature Readiness
 
@@ -28,10 +29,12 @@
 - [x] User scenarios cover the five primary roles
 - [x] Feature addresses the supplied outcomes for bulk entry, duplicate e-Rapor entry, and schedule conflict visibility
 - [x] No implementation details leak into specification
+- [x] Attendance exceptions, pending/approved/rejected states, and missing/ambiguous transport-policy behavior have acceptance evidence.
 
 ## Notes
 
 - Q1 resolved: STS and SAS are included in the configurable 40% Sumatif allocation.
 - Q2 resolved: Siswa Atlet retain the full 25% attendance contribution regardless of physical absences; attendance records remain required.
 - Numeric duration thresholds for bulk import and schedule-conflict visibility may be refined during planning; acceptance outcomes currently preserve the supplied no-timeout and immediate-visibility requirements.
+- Transport formula, rate unit, rounding, effective dates, and staff-versus-role precedence remain school-approved prerequisites; absent or ambiguous configuration is explicitly unavailable, not guessed.
 - The specification is a product-level draft. No application code or implementation plan was created.

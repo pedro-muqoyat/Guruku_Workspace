@@ -24,7 +24,7 @@ Deliver disjoint, least-privilege views for Administrator/TU operations, Waka Ku
 
 **Performance Goals**: Render and stream the static dashboard shell without awaiting widget queries; each widget resolves independently. Meet the spec's two-second information-finding outcome and target CLS 0.00 for fallback-to-content replacement through reserved geometry. “0 ms” is not a literal network or render guarantee; measure actual server-shell and widget timings.
 
-**Constraints**: No service-role access in request paths; every Server Action authenticates with `auth.getUser()`, validates untrusted input with Zod, and returns a safe discriminated result. RPCs independently enforce role and assignment scope. Personalized responses are not shared-cached. RSCs do not format timestamps with `Intl` or perform timezone conversion. Lists and data tables retain their semantic structures; 5+ column tables scroll internally with a sticky identity column.
+**Constraints**: No service-role access in request paths; every Server Action authenticates with `auth.getUser()`, validates untrusted input with Zod, and returns a safe discriminated result. RPCs independently enforce role and assignment scope. Personalized responses are not shared-cached. RSCs do not format timestamps with `Intl` or perform timezone conversion. Lists and data tables retain their semantic structures; 5+ column tables scroll internally with a sticky identity column. Attendance summaries consume persisted records and expose source/approval state; no unsubmitted Default Present UI value is attendance evidence. TU operational totals include only explicitly approved ESP32/WFH events. Transport values require the effective approved formula/rate version and must be unavailable when school policy is missing or ambiguous.
 
 **Scale/Scope**: One school workspace, current school day, active academic term, and records within the caller's assigned classes/teaching schedules. Query sizes are bounded to these scopes and ranked lists; exact school enrollment counts are not present in the repository and must be established from deployment data before tuning indexes or limits.
 
@@ -40,6 +40,7 @@ Deliver disjoint, least-privilege views for Administrator/TU operations, Waka Ku
 | Configurable and Fair Assessment | The dashboard sums recorded score points for its stated period; it does not calculate, mutate, or relabel final grades or bypass grading policies. | PASS |
 | Event-Driven Operational Awareness | Today's schedule and validation state expose classes without confirmed teaching activity. This dashboard does not replace conflict detection or create notifications. | PASS |
 | Reliable Bulk I/O | No import/export or bulk write is introduced. Reads use bounded date/period and assignment scopes; returned rows are only the fields required by widgets. | PASS |
+| Attendance approval and transport provenance | The read-only TU dashboard consumes explicit Operator TU decisions and source-tagged ESP32/WFH records. It displays transport only when an approved, effective formula/rate is resolvable and identifies the version and period. | PASS with school policy prerequisite |
 
 No constitutional exception is requested. The security gate fails if implementation leaves TU able to select student-level tables or if a role/assignment denial test fails.
 

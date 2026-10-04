@@ -74,6 +74,8 @@ Walikelas memantau kelas yang menjadi tanggung jawabnya, menerima peringatan ket
 2. **Given** catatan nilai yang telah disimpan oleh guru, **When** Walikelas membuka rekap kelas, **Then** agregat tampil per mata pelajaran tanpa meminta Walikelas memasukkan ulang nilai.
 3. **Given** rekap kelas binaan, **When** Walikelas mencetak atau mengekspor rekap, **Then** hasilnya mencakup catatan yang berhak dilihat Walikelas dan dapat digunakan sebagai fondasi e-Rapor.
 4. **Given** Walikelas yang tidak ditugaskan pada suatu kelas, **When** Walikelas mencoba membuka atau mencetak rekap kelas tersebut, **Then** akses ditolak.
+5. **Given** daftar siswa terdaftar pada sesi kelas binaan, **When** Walikelas membuka alur pencatatan presensi, **Then** setiap siswa mula-mula berstatus Hadir dan Walikelas hanya perlu mengubah status yang merupakan pengecualian.
+6. **Given** siswa memiliki pengecualian presensi, **When** Walikelas mengubah status menjadi Sakit, Izin, Alpa, atau Izin Pulang di tengah hari lalu mengirim catatan, **Then** hanya status yang dikirim tersimpan, Izin Pulang tercatat sebagai kejadian tersendiri, dan aktor serta waktu koreksi dapat ditelusuri.
 
 ---
 
@@ -90,6 +92,10 @@ Operator Tata Usaha melihat agregasi presensi guru yang didasarkan pada kegiatan
 1. **Given** sesi guru yang telah dan belum divalidasi, **When** Operator TU membuka rekap presensi, **Then** agregat membedakan aktivitas tervalidasi dan tidak tervalidasi dan tidak memakai presensi gerbang sebagai pengganti validasi mengajar.
 2. **Given** rekap periode yang dipilih, **When** Operator TU mengekspor data, **Then** setiap catatan tervalidasi muncul satu kali dalam format yang disepakati untuk validasi penggajian.
 3. **Given** Operator TU tanpa kewenangan master data, **When** operator mencoba mengubah jadwal atau nilai siswa, **Then** perubahan ditolak.
+4. **Given** data presensi guru masuk dari log perangkat ESP32 atau permohonan manual WFH, **When** Operator TU meninjau antrean, **Then** setiap catatan menampilkan kanal dan referensi sumber serta berstatus menunggu persetujuan sampai Operator TU memilih Apply/ACC atau menolak dengan alasan.
+5. **Given** catatan presensi dari kanal ESP32 maupun WFH belum disetujui, **When** rekap kehadiran dan transportasi dihitung, **Then** catatan tersebut tidak dianggap final atau digunakan sebagai kehadiran terverifikasi.
+6. **Given** konfigurasi tarif transportasi yang berlaku untuk seorang staf atau peran struktural, **When** Operator TU menghitung rekap periode, **Then** jumlah transportasi dihitung memakai rumus dan tarif efektif yang disetujui, dan hasil serta versi konfigurasi dapat ditelusuri pada ekspor dukungan penggajian.
+7. **Given** tidak ada rumus atau tarif yang berlaku secara tunggal untuk staf pada periode tersebut, **When** Operator TU meminta perhitungan, **Then** jumlah ditampilkan sebagai tidak tersedia dan sistem tidak mengarang atau memilih tarif secara ambigu.
 
 ### Edge Cases
 
@@ -126,6 +132,13 @@ Operator Tata Usaha melihat agregasi presensi guru yang didasarkan pada kegiatan
 - **FR-018**: Sistem MUST mempertahankan jejak audit yang mengidentifikasi aktor dan waktu perubahan data akademik serta tindakan istimewa.
 - **FR-019**: Sistem MUST memproses impor 1.000 matriks nilai siswa tanpa timeout atau menghalangi pengguna lain menyelesaikan alur kerja.
 - **FR-020**: Sistem MUST memastikan setiap catatan valid yang diterima dalam impor atau ekspor hanya direkam atau diekspor satu kali untuk kombinasi identitas dan periode yang sama.
+- **FR-021**: Alur presensi Walikelas MUST memulai setiap siswa terdaftar pada kelas dan sesi yang dipilih dengan status Hadir; status awal UI MUST NOT dianggap sebagai catatan tersimpan sebelum pengguna mengirim alur pencatatan.
+- **FR-022**: Alur presensi MUST mendukung pengecualian Sakit, Izin, Alpa, dan Izin Pulang di tengah hari; setiap perubahan dan koreksi MUST menyimpan identitas aktor serta waktu perubahan.
+- **FR-023**: Presensi guru MUST menerima catatan dari kanal log perangkat ESP32 dan permohonan manual WFH serta MUST mempertahankan kanal, referensi sumber, waktu penerimaan, dan identitas pengaju/perekam.
+- **FR-024**: Setiap catatan presensi guru dari kanal ESP32 maupun WFH MUST memerlukan pemeriksaan dan keputusan eksplisit Apply/ACC oleh Operator TU sebelum berstatus final; penolakan MUST menyimpan alasan dan riwayatnya. Catatan yang belum disetujui MUST NOT dihitung sebagai kehadiran terverifikasi atau dasar transportasi.
+- **FR-025**: Operator TU yang berwenang MUST dapat mengonfigurasi tarif transportasi efektif untuk staf individual atau peran struktural, termasuk OB, Staf TU, dan Waka; perubahan tarif MUST dapat diaudit dan tidak boleh mengubah perhitungan historis secara diam-diam.
+- **FR-026**: Sistem MUST menghitung dukungan transportasi hanya dari kehadiran guru yang telah disetujui dan memakai rumus, tarif, serta periode efektif yang teridentifikasi. Jika konfigurasi berlaku tidak ada atau ambigu, sistem MUST menyatakan nilai tidak tersedia.
+- **FR-027**: Ekspor dukungan penggajian MUST mencakup hasil transportasi yang dapat ditelusuri ke catatan kehadiran yang disetujui serta versi rumus/tarif, dan MUST NOT mengirim atau mengesahkan pembayaran gaji.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -152,6 +165,9 @@ Operator Tata Usaha melihat agregasi presensi guru yang didasarkan pada kegiatan
 - **SC-005**: 100% catatan dalam rekap presensi TU dapat ditelusuri ke sesi mengajar tervalidasi; presensi gerbang yang tidak tervalidasi tidak dihitung sebagai kegiatan mengajar.
 - **SC-006**: Pada pengujian izin, 100% tindakan yang diizinkan berfungsi dan 100% tindakan lintas peran atau di luar penugasan yang dilarang ditolak.
 - **SC-007**: Untuk 100% siswa berstatus Siswa Atlet yang berlaku, perubahan presensi fisik tidak mengurangi bobot Kehadiran 25%, dan setiap presensi tetap tercatat.
+- **SC-008**: Pada setiap daftar presensi Walikelas, 100% siswa yang terdaftar ditampilkan dengan status awal Hadir; hanya tindakan kirim yang menghasilkan catatan tersimpan, dan semua perubahan pengecualian dapat ditelusuri.
+- **SC-009**: Dalam pengujian kanal ESP32 dan WFH, 100% catatan baru berstatus menunggu sampai keputusan Apply/ACC Operator TU; tidak ada catatan tertunda atau ditolak yang masuk ke agregat kehadiran terverifikasi.
+- **SC-010**: Untuk semua fixture dengan rumus dan tarif efektif yang tidak ambigu, hasil transportasi dan ekspor dukungan penggajian cocok dengan perhitungan kebijakan serta mencantumkan sumber/versi; konfigurasi hilang atau ambigu menghasilkan status tidak tersedia.
 
 ## Assumptions
 
@@ -159,6 +175,9 @@ Operator Tata Usaha melihat agregasi presensi guru yang didasarkan pada kegiatan
 - Satu sesi kelas terjadwal menjadi unit untuk menghitung tiga ketidakhadiran berturut-turut; hari libur dan sesi yang dibatalkan bukan sesi ketidakhadiran.
 - Bentrok jadwal yang wajib dideteksi setidaknya mencakup tumpang tindih waktu untuk guru yang sama. Bentrok ruang atau sumber daya lain memerlukan aturan sekolah tersendiri.
 - Format ekspor e-Rapor dan validasi penggajian disepakati dengan sekolah sebelum implementasi; sistem menyediakan keluaran standar, bukan mengirim data langsung ke sistem eksternal.
+- Rumus transportasi, unit tarif, periode efektif, serta prioritas tarif individual dibanding tarif peran harus ditetapkan dan disetujui sekolah sebelum penerimaan fitur; tidak ada rumus atau tarif bawaan yang diasumsikan oleh sistem.
+- Integrasi ESP32 memasok identitas perangkat dan referensi peristiwa yang stabil; alur WFH memasok pengaju dan bukti/referensi permohonan. Keduanya tetap menunggu keputusan Operator TU.
+- Ekspor dukungan penggajian menghitung dan menyediakan data, tetapi tidak menjalankan payroll, menyetujui pembayaran, atau mengirim langsung ke sistem eksternal.
 - Jadwal dianggap diberlakukan ketika dipublikasikan untuk semester; konflik harus ditampilkan sebelum tindakan publikasi berhasil.
 - Administrator mencatat status Siswa Atlet berdasarkan penetapan resmi sekolah dan menetapkan periode berlakunya; status tidak disimpulkan dari presensi.
 - Porsi Sumatif rutin, STS, dan SAS di dalam keranjang 40% ditetapkan oleh Administrator sebelum nilai periode tersebut dihitung; belum ada rasio baku di luar total 40% yang diberikan.

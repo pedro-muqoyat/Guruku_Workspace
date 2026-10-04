@@ -14,7 +14,8 @@ user_profiles (teacher) 1--* schedules *--1 (classes, subjects)
 schedules 1--* class_sessions 1--* attendance_logs *--1 students
 class_sessions 1--0..1 teaching_journals
 academic_periods 1--* assessments 1--* student_grades *--1 students
-user_profiles (teacher) 1--* teacher_attendance_statuses
+user_profiles (teacher) 1--* teacher_attendance_events *--0..1 approval (Operator TU)
+transport_rate_policies 1--* transport_calculations *--* approved teacher_attendance_events
 ```
 
 ## Entities
@@ -35,14 +36,15 @@ user_profiles (teacher) 1--* teacher_attendance_statuses
 ### Teacher schedule and performance
 
 - **class_sessions / teaching_journals** (existing evidence, validation alignment required): A completed session counts as validated teaching activity only when it satisfies the agreed validation rule (completed session plus valid teaching-journal/validation evidence). JP is summed from the session's `total_jp`, not counted as one per row.
-- **teacher_attendance_statuses** (required source or integration): One validated status for a teacher and school date when the teacher is recorded as `IZIN`, `SAKIT`, or `ALPA`. Include teacher ID, school date, status, source/reference, recorder, validator, and validation timestamp. This is an authoritative upstream record, not inferred from an empty schedule/session query. If the source already exists outside this database at implementation time, integrate through a documented contract instead of duplicating it.
-- **Teacher day status DTO**: `HADIR_MENGAJAR` requires validated teaching evidence; `IZIN`, `SAKIT`, and `ALPA` require validated status records; no evidence returns `BELUM_TERVERIFIKASI`. Conflicting validated absence and teaching evidence returns `KONFLIK_DATA` and a safe correction state. Daily scheduled JP is `sum(schedules.total_jp)` for the school date; display it as scheduled workload, distinct from validated/completed JP.
+- **teacher_attendance_events** (required source or integration): An ESP32 device event or WFH manual request with teacher ID, school date, source/reference, submitter/recorder, received time, and decision state (`PENDING`, `APPROVED`, or `REJECTED`). Only an explicit Operator TU Apply/ACC decision may approve; rejection carries a reason and decision actor/time. This is not inferred from an empty schedule/session query. Integrate an authoritative upstream source through a documented contract rather than duplicating it.
+- **transport_rate_policies / transport_calculations**: Effective-dated staff-specific or structural-role rates and a reproducible period calculation from approved attendance. The calculation identifies formula/rate version, eligible attendance evidence, and rounding result. Formula, rate unit, rounding, and person-versus-role precedence are school-approved prerequisites; absent or ambiguous policy is unavailable, never inferred.
+- **Teacher day status DTO**: `HADIR_MENGAJAR` requires validated teaching evidence; `IZIN`, `SAKIT`, and `ALPA` require approved source events; pending events return `MENUNGGU_PERSETUJUAN`, rejected events remain distinguishable, and no evidence returns `BELUM_TERVERIFIKASI`. Conflicting approved absence and teaching evidence returns `KONFLIK_DATA` and a safe correction state. Daily scheduled JP is `sum(schedules.total_jp)` for the school date; display it as scheduled workload, distinct from validated/completed JP.
 - **Leaderboard period**: The active and immediately previous completed academic period. Sum only recorded scores for the Guru's assigned class/subject schedule scope. Trend is the sign of current-period total minus prior-period total; unavailable comparison yields no up/down claim. Stable tie order: total descending, display name ascending, student ID ascending.
 
 ## Authorization and DTO Constraints
 
 - Every viewer is verified with Supabase `auth.getUser()` before role-specific RPC calls; SQL independently derives `auth.uid()`.
-- ADMIN/WAKA may read the school-wide operational view. TU receives only schedule and teacher aggregates from a narrow RPC. Remove TU from direct RLS predicates for `students`, `class_sessions`, `attendance_logs`, and `student_grades`; keep schedules available as required by the spec.
+- ADMIN may read the school-wide operational view. TU receives only schedule, teacher attendance approval/source state, and approved transport aggregates from narrow RPCs. WAKA_KURIKULUM receives a separate executive aggregate contract, not the ADMIN/TU operational contract. Remove TU from direct RLS predicates for `students`, `class_sessions`, `attendance_logs`, and `student_grades`; keep schedules available as required by the spec. Pending/rejected events MUST NOT contribute to confirmed presence or transport.
 - WALI aliases are scoped to all assigned classes only. GURU is scoped to all active assigned schedules and their class/subject grade rows. MURID and unknown roles have no dashboard grant.
 - Macro DTOs may include teacher display name but never student identifiers or records. Student DTOs contain only student ID, canonical display name, assigned class context, score total, attendance summary, and permitted trend fields.
 - SQL RPCs use `auth.uid()` and assignment membership for every row, fixed `search_path`, fully qualified objects, and explicit grants. No caller-submitted user/role value is authoritative.

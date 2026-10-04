@@ -14,6 +14,8 @@ assessments 1--* student_grades *--1 students
 students 1--* athlete_statuses (bounded by academic period)
 user_profiles 1--* notifications; user_profiles 1--* audit_logs
 user_profiles 1--* import_batches 1--* import_chunks
+user_profiles (teacher) 1--* teacher_attendance_events *--0..1 approval (Operator TU)
+transport_rate_policies 1--* transport_calculations *--* approved teacher_attendance_events
 ```
 
 ## Entities and Constraints
@@ -38,9 +40,13 @@ user_profiles 1--* import_batches 1--* import_chunks
 
 ### Attendance and teaching records
 
-- **attendance_logs**: One row per student per class session; status enum includes present, sick, excused, and Alpa; records recorder and timestamps. Unique `(class_session_id, student_id)`. RLS limits teacher writes to assigned sessions and students enrolled in the session's class/period.
+- **attendance_logs**: One current row per student per class session with status `Hadir`, `Sakit`, `Izin`, or `Alpa`; records recorder and timestamps. Unique `(class_session_id, student_id)`. RLS limits teacher writes to assigned sessions and students enrolled in the session's class/period.
+- **attendance_events**: Append-only attendance exception/correction history tied to an attendance row, including `Izin Pulang`, prior/new status, event time, actor, and correction reason. A mid-day departure does not erase the original session attendance; the event is separately traceable and contributes to aggregates only under an explicitly approved school rule.
 - **teaching_journals**: Class session, teaching teacher, subject, material/learning summary, and audit timestamps. One journal per session/subject/teacher unless school policy allows multiple entries.
 - **athlete_statuses**: Student, approved designation, academic period, effective dates, approving administrator, and audit trail. Attendance logs remain factual; the athlete status affects only grade calculation and supplies a full attendance-component contribution while active.
+- **Walikelas attendance entry**: The form initializes each enrolled student as `Hadir` for the selected session. This client-side default is not a persisted attendance row; only a submitted and authorized action creates or updates attendance. Mid-day `Izin Pulang` is a distinct recorded exception with actor, timestamp, and correction history.
+- **teacher_attendance_events**: A proposed teacher attendance event with teacher, school date, source (`ESP32` or `WFH`), stable source/request reference, event time, submitter/recorder, decision (`PENDING`, `APPROVED`, `REJECTED`), Operator TU decision actor/time, and rejection reason when rejected. Source ingestion or manual WFH submission never finalizes an event by itself. A stable source key prevents replay duplicates.
+- **teacher_attendance_approvals**: Approval/rejection evidence or an equivalent immutable event history. Every finalization requires an explicit Operator TU `Apply/ACC` action; corrections retain the prior decision and identify the new actor/time.
 
 ### Assessment and calculation
 
@@ -56,6 +62,9 @@ user_profiles 1--* import_batches 1--* import_chunks
 - **audit_logs**: Actor (`auth.uid()`), timestamp, entity/table, record key, operation, and relevant before/after values or a privacy-safe change summary. Database triggers cover critical academic writes; audit access is restricted.
 - **import_batches**: Initiating user, dataset type, period, file fingerprint, start/end, and overall status/counts. Never store the uploaded workbook binary.
 - **import_chunks**: Batch, monotonically increasing chunk number, idempotency key, status, accepted/rejected counts, and retry metadata. Unique `(batch_id, chunk_number)` prevents duplicate progress records.
+- **transport_rate_policies**: Effective-dated rate assigned to a staff identity or structural role (including OB, TU Staff, and Waka), with currency/unit, authorized TU configurator, and audit timestamps. The precedence between a person-specific rate and a role rate must be supplied as an approved school rule.
+- **transport_calculations**: Period result containing the approved formula/version, effective rate-policy reference, eligible approved attendance references, calculated amount, and actor/time. It is reproducible and immutable with respect to later policy changes.
+- **Transport formula configuration**: The actual formula, rate unit, rounding rule, and rate precedence are school-approved inputs. No default formula or rate is inferred by this data model; missing or ambiguous configuration yields an unavailable calculation.
 
 ## Trigger Behavior
 
@@ -66,6 +75,7 @@ user_profiles 1--* import_batches 1--* import_chunks
 ## Index and RLS Requirements
 
 - Index all foreign keys and RLS filter columns, including user-role scopes, teacher assignment, class/period membership, student/session attendance, and notification recipient.
+- Scope teacher attendance source and decision rows to authorized actors; only Operator TU may approve/reject, and only approved rows may feed attendance/payroll-support aggregates. Audit source, decision, correction, and calculation-version changes.
 - Enable RLS on every exposed table; revoke anonymous access and unnecessary grants before granting role-specific operations.
 - Waka and TU have school-wide analytical `SELECT` access and no academic-table mutation grants. Waka may create/read schedule-change requests in their separate workflow table; only Administrator may publish schedule changes. Walikelas reads assigned classes; teachers mutate only their assigned sessions/subjects; administrators manage master data and authorized recovery.
 - pgTAP tests assert both allowed and denied reads/writes, including anonymous access, wrong teacher assignment, out-of-class Walikelas, and unauthorized Waka/TU mutations.

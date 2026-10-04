@@ -24,6 +24,8 @@ Administrator and Operator TU open the dashboard to understand the current-day s
 2. **Given** an authorized Operator TU, **When** they open the dashboard, **Then** they see the operational schedule and teacher-level status and daily teaching-load totals, but no student-level scores or attendance details.
 3. **Given** validated teacher activity and a recorded status for the day, **When** an authorized Administrator or TU reads the operational performance matrix, **Then** the status and daily total JP match authoritative records and are distinguishable without relying on color alone.
 4. **Given** Waka Kurikulum or another user outside the operational roles, **When** they request the TU operational data directly, **Then** access is denied unless separately granted the specific Administrator operational view.
+5. **Given** teacher attendance events from ESP32 and WFH sources, **When** TU opens the operational view, **Then** approved, pending, and rejected records are distinguishable by source and only approved events contribute to confirmed attendance totals.
+6. **Given** an applicable transport formula and effective staff/role rate, **When** TU reviews the period summary, **Then** the calculated transport amount is traceable to approved attendance and the applied policy version; missing or ambiguous configuration is shown as unavailable.
 
 ### User Story 2 - Waka Kurikulum Executive Academic View (Priority: P2)
 
@@ -46,13 +48,14 @@ Walikelas opens the dashboard to follow the day's subject-teacher traffic and th
 
 **Why this priority**: It supports early detection of class-level teaching gaps and student attendance or academic concerns while respecting the Walikelas assignment boundary.
 
-**Independent Test**: Sign in as a Walikelas assigned to one class with schedules and student records, plus a second unassigned class. Confirm the timeline and student matrix cover only the assigned class and accurately reflect today's records.
+**Independent Test**: Sign in as a Walikelas assigned to multiple classes with schedules and student records, plus an unassigned class. Confirm the timeline and student matrices cover every assigned class and exclude the unassigned class while accurately reflecting today's records.
 
 **Acceptance Scenarios**:
 
 1. **Given** a Walikelas with an assigned class and today's class schedules, **When** they open the dashboard, **Then** they see the subject teachers entering that class ordered by teaching period.
-2. **Given** students in an assigned class with daily scores in multiple subjects and attendance records, **When** the Walikelas views student progress, **Then** each student has one daily total across subjects and a separately labeled daily attendance status.
+2. **Given** students in an assigned class with daily scores in multiple subjects and approved attendance records, **When** the Walikelas views student progress, **Then** each student has one daily total across subjects and a separately labeled status derived only from persisted attendance; an unsubmitted Default Present UI state is not evidence of attendance.
 3. **Given** a class not assigned to the signed-in Walikelas, **When** they open or directly request its dashboard data, **Then** its schedule and student records are not disclosed.
+4. **Given** a Walikelas with more than one active class assignment, **When** they open the dashboard, **Then** every active assigned class is included and no single assignment is selected arbitrarily as the entire access scope.
 
 ### User Story 4 - Subject Teacher Execution (Priority: P4)
 
@@ -68,6 +71,7 @@ Guru Mata Pelajaran opens the dashboard to follow their own teaching itinerary a
 2. **Given** students with scores from classes assigned to that teacher, **When** they view the leaderboard, **Then** students are ranked by total score for the current academic term and each trend compares with the previous completed academic term.
 3. **Given** a student or class outside the teacher's teaching assignments, **When** the teacher requests leaderboard data, **Then** the data is not disclosed.
 4. **Given** a student without comparable historical scores, **When** the leaderboard is displayed, **Then** the trend is labeled unavailable rather than inferred as unchanged.
+5. **Given** a Guru with multiple active teaching assignments, **When** they open the dashboard, **Then** the itinerary and leaderboard cover all and only their assigned class/subject pairs.
 
 ### Edge Cases
 
@@ -83,14 +87,14 @@ Guru Mata Pelajaran opens the dashboard to follow their own teaching itinerary a
 ### Functional Requirements
 
 - **FR-001**: The dashboard MUST determine the user's permitted dashboard view from the authenticated identity and authoritative role and assignment records. Hiding a widget MUST NOT be treated as authorization to access its data.
-- **FR-002**: The dashboard MUST provide the school-wide operational view to Administrator and Waka Kurikulum, and the defined operational schedule and teacher-level summary to Operator TU.
+- **FR-002**: The dashboard MUST provide the school-wide operational view to Administrator and the defined operational schedule and teacher-level summary to Operator TU. Waka Kurikulum MUST receive only the separate executive view defined for that role, not the ADMIN/TU operational dashboard contract.
 - **FR-003**: The school-wide daily schedule MUST present all scheduled teachers as a chronological semantic list, with each event identifying who teaches, the class, and the time.
-- **FR-004**: The school-wide teacher performance matrix MUST identify each teacher's daily status and total teaching load in JP. Status values MUST distinguish Hadir/Mengajar, Izin, Sakit, and Alpa when authoritative records support them.
-- **FR-005**: Teacher attendance reporting MUST reflect validated teaching activity in accordance with the system's attendance policy. Unvalidated or missing records MUST NOT be represented as confirmed attendance.
+- **FR-004**: The school-wide teacher performance matrix MUST identify each teacher's daily status and total teaching load in JP. Status values MUST distinguish Hadir/Mengajar, Izin, Sakit, and Alpa when authoritative records support them; source and approval state MUST be available for attendance events.
+- **FR-005**: Teacher attendance reporting MUST reflect validated teaching activity in accordance with the system's attendance policy. ESP32 and WFH events MUST remain pending until explicit Operator TU Apply/ACC approval; unapproved, rejected, or missing records MUST NOT be represented as confirmed attendance.
 - **FR-006**: Operator TU MUST be limited to the operational schedule and teacher attendance aggregates needed for this view and MUST NOT receive student-level academic or attendance records through dashboard access.
-- **FR-007**: Walikelas MUST see only the schedule and student monitoring data for classes assigned to them. The daily class schedule MUST be a semantic list ordered by teaching period and identify each subject teacher.
+- **FR-007**: Walikelas MUST see schedule and student monitoring data for every active class assigned to them, and no unassigned class. The daily class schedule MUST be a semantic list ordered by teaching period and identify each subject teacher.
 - **FR-008**: The Walikelas student matrix MUST show each assigned student, the sum of that student's recorded scores across subjects for the current school day, and a separately labeled daily attendance status.
-- **FR-009**: Guru Mata Pelajaran MUST see only their personal daily itinerary and students within classes covered by their teaching assignments. The itinerary MUST be ordered by scheduled time or teaching period and identify each class.
+- **FR-009**: Guru Mata Pelajaran MUST see their complete personal daily itinerary and students within every active class/subject pair covered by their teaching assignments, and no other assignment scope. The itinerary MUST be ordered by scheduled time or teaching period and identify each class.
 - **FR-010**: The teacher leaderboard MUST rank students using total scores from the current academic term across that teacher's assigned classes and show a historical trend of Naik, Turun, or Tetap against the previous completed academic term when comparable data exists.
 - **FR-011**: Status and trend values MUST use clearly labeled badge/pill indicators. Hadir/Mengajar and Naik use the success color, Alpa/absence and Turun use the danger color, and Izin uses the warning color. Sakit and unavailable values MUST have distinct, explicit labels. Color MUST NOT be the only carrier of meaning.
 - **FR-012**: Schedule timelines and itineraries MUST use semantic list structures. Performance data MUST use a true data table with programmatically associated row and column headers that screen readers can identify.
@@ -103,6 +107,12 @@ Guru Mata Pelajaran opens the dashboard to follow their own teaching itinerary a
 - **FR-019**: The executive teacher-performance analysis MUST compare validated delivered JP against the canonical curriculum workload target for each teacher, calculate attainment percentage and JP deficit for the selected month and semester, and identify the target period used.
 - **FR-020**: The executive academic distribution MUST report average recorded score points grouped across class and subject for the selected academic period. It MUST return aggregate values only, with no student identifier or individual score row.
 - **FR-021**: Curriculum analytics MUST be computed by a dedicated, role-scoped data contract separate from the Administrator/TU operational queries and Server Actions. A denial or failure in the Waka view MUST NOT alter or broaden TU data access.
+- **FR-022**: The TU operational view MUST distinguish teacher attendance events by source (ESP32 device log or WFH manual request) and decision state (pending, approved, rejected); only approved events may contribute to confirmed presence or downstream transport totals.
+- **FR-023**: The TU transport summary MUST use the effective, authorized staff-specific or structural-role transport rate and identified calculation-policy version, and MUST show the applicable period and traceable source totals.
+- **FR-024**: When a transport formula/rate is missing, conflicting, or outside its effective period, the dashboard MUST show an explicit unavailable state and MUST NOT return an inferred amount.
+- **FR-025**: Dashboard attendance summaries MUST use persisted, approved attendance records; default values shown by an unsubmitted attendance-entry form MUST NOT be presented as confirmed attendance.
+- **FR-026**: The dashboard MUST derive access from every active authoritative role assignment for the authenticated user; it MUST NOT restrict a valid Guru or Walikelas to an arbitrary first assignment, and each returned record MUST belong to one of those assignments.
+- **FR-027**: The canonical Waka Kurikulum role key MUST be `WAKA_KURIKULUM` across the profile, authorization contract, and executive response. `WAKA` MUST NOT be treated as an implicit runtime alias; missing, ambiguous, or unsupported role values MUST fail closed.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -126,6 +136,9 @@ Guru Mata Pelajaran opens the dashboard to follow their own teaching itinerary a
 - **SC-007**: In role-matrix tests, Waka Kurikulum receives HTTP 200 for curriculum analytics and 100% of TU, Administrator, unauthenticated, and other-role requests receive HTTP 403 with no executive data.
 - **SC-008**: For complete workload and assessment fixtures, all teacher attainment/deficit and class-subject average values match their canonical target and score records for the selected month/semester.
 - **SC-009**: Executive analytics responses contain no student identifiers or individual score rows.
+- **SC-010**: For ESP32/WFH attendance events, only an explicit Operator TU-approved record contributes to confirmed-presence totals; pending/rejected records remain separately labeled and excluded. Separately, teaching-session presence requires its defined teaching validation evidence.
+- **SC-011**: For complete approved-attendance and effective-rate fixtures, every displayed transport amount matches the configured formula and identifies its policy period/version; missing or ambiguous configuration returns unavailable, not a numeric guess.
+- **SC-012**: In multi-assignment fixtures, 100% of a Guru's and Walikelas's valid assigned classes/subjects appear in the permitted view, 0 unassigned records appear, and role-contract tests accept only `WAKA_KURIKULUM` for executive analytics.
 
 ## Assumptions
 
@@ -137,3 +150,5 @@ Guru Mata Pelajaran opens the dashboard to follow their own teaching itinerary a
 - The canonical Waka role is `WAKA_KURIKULUM`; existing role aliases or schema constraints must be reconciled before enabling the Waka-only endpoint. Administrator and TU are intentionally not implied executive-role aliases.
 - Curriculum workload attainment uses a canonical per-teacher target for the selected period; missing targets or validation evidence produce an unavailable state rather than an assumed 100% or zero deficit.
 - The dashboard presents operational and academic data; it does not create or modify schedules, attendance, scores, or role assignments.
+- The attendance approval and transport calculation workflows are owned by the academic-operations feature; this read-only dashboard consumes their persisted approval state, effective policy, and calculated result.
+- School-approved transport formulas, rate units, effective dates, and precedence between staff-specific and role rates are prerequisites; no dashboard implementation may infer them.

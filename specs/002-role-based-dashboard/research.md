@@ -34,7 +34,7 @@
 
 ### 4. Enforce TU's data limit at the database boundary
 
-**Decision**: Retain the requested TU school schedule and teacher-summary view, but remove TU from direct student, attendance-log, and grade SELECT policy branches. Expose minimal teacher display names and operational rows via macro RPCs that allow only ADMIN/WAKA/TU and return no student records. Add direct-table negative policy tests.
+**Decision**: Retain the requested TU school schedule and teacher-summary view, but remove TU from direct student, attendance-log, and grade SELECT policy branches. Expose minimal teacher display names and operational rows via macro RPCs that allow only ADMIN/TU and return no student records. WAKA_KURIKULUM uses its separate executive analytics contract and is denied from the ADMIN/TU operational RPCs. Add direct-table negative policy tests.
 
 **Rationale**: The feature spec prohibits student-level data for TU. Current SELECT grants and RLS predicates include TU on `students`, `class_sessions`, `attendance_logs`, and `student_grades`; restricting only the dashboard widget or ranking RPC does not stop direct Supabase queries. TU also cannot read other users' profile names under the current profile policy, so a minimal macro DTO is safer than broadening profile visibility.
 

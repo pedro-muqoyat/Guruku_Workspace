@@ -14,8 +14,10 @@ These names describe logical contracts; final SQL identifiers may follow reposit
 
 | Contract | Allowed callers | Scope derived in SQL | Minimum result |
 |---|---|---|---|
-| School schedule timeline | ADMIN, WAKA, TU | Current school date; all scheduled teachers/classes | Event ID, teacher display name, class name, subject name, local start/end time, scheduled JP, session/validation state |
-| Teacher performance summary | ADMIN, WAKA, TU | Current school date; all teacher schedules and validated activity | Teacher ID/name, status, status validation state, scheduled JP, validated JP, safe freshness timestamp |
+| School schedule timeline | ADMIN, TU | Current school date; all scheduled teachers/classes | Event ID, teacher display name, class name, subject name, local start/end time, scheduled JP, session/validation state |
+| Teacher performance summary | ADMIN, TU | Current school date; all teacher schedules and approved activity | Teacher ID/name, status, source (`ESP32`/`WFH`/teaching validation), approval state, scheduled JP, approved/validated JP, safe freshness timestamp |
+| Curriculum executive analytics | WAKA_KURIKULUM | Selected month/semester and academic period; aggregate validated workload and class/subject scores | Teacher workload target/delivered JP/deficit, class/subject average points, policy/period references; no student identifiers or individual scores |
+| TU transport summary | TU; ADMIN only where separately authorized | Selected period; approved attendance and effective transport configuration | Staff/role scope, approved attendance basis, amount or unavailable state, effective rate/formula version, period, freshness timestamp; no unapproved event or student detail |
 | Homeroom schedule | WALI aliases | All current-day schedules in every assigned class | Class, teacher, subject, local time, period, validation state |
 | Homeroom student summary | WALI aliases | Students enrolled in all assigned classes on current school date | Student ID/name, daily score total or unavailable, attendance status/counts |
 | Teacher itinerary | GURU | All current-day schedules for `auth.uid()` | Class, subject, local time, period, scheduled JP, validation state |
@@ -47,6 +49,9 @@ type DashboardActionResult<T> =
 - Status/trend values use closed enums; unknown database values map to an unavailable state and are logged for correction, never coerced to a positive state.
 - Timestamps crossing to `LocalTime` are ISO UTC strings plus the configured school timezone. Schedule wall-clock values remain local strings with `<time>` semantics and are not converted as UTC instants.
 - Every data response identifies its school date/academic period and freshness timestamp. The UI must not label old values “real-time.”
+- Teacher attendance DTOs distinguish pending, approved, and rejected source events. Only Operator TU-approved ESP32/WFH events contribute to confirmed attendance or transport totals.
+- No transport amount is returned unless one approved formula and effective staff/role rate apply unambiguously; responses identify the policy version and period. Missing, conflicting, or expired configuration is `unavailable`.
+- Default Present is only an unsubmitted Walikelas form value. Dashboard attendance DTOs must be derived from persisted attendance records, never from a form default.
 - A successful response with missing score/history is represented with nullable value plus an explicit availability/status field; no fabricated zero or `TETAP`.
 - DTOs are serializable primitives and arrays only; no Supabase client, query error, user/session object, or database row with unneeded columns crosses the RSC boundary.
 
@@ -54,4 +59,4 @@ type DashboardActionResult<T> =
 
 - Revoke the TU student-row access currently granted by the SELECT/RLS paths; verify direct REST/PostgREST reads are denied for students, sessions, attendance logs, and grades.
 - `SECURITY DEFINER` RPCs must set a fixed search path, qualify all referenced objects, reject null `auth.uid()`, role-check, assignment-check, bound date/period scope, and expose only minimal rows. Revoke execution from `PUBLIC` and `anon`; grant only to `authenticated`.
-- pgTAP allow/deny coverage includes ADMIN, WAKA, TU, each Walikelas alias, GURU, MURID, unauthenticated access, wrong class, wrong subject, unassigned teacher, missing role, and arbitrary caller-supplied IDs.
+- pgTAP allow/deny coverage includes ADMIN, WAKA_KURIKULUM, TU, each Walikelas alias, GURU, MURID, unauthenticated access, wrong class, wrong subject, unassigned teacher, missing role, and arbitrary caller-supplied IDs.

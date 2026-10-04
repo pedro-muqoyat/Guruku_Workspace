@@ -42,7 +42,7 @@ E2E_BASE_URL=http://127.0.0.1:3000 node test-dashboard-rpc.js
 node scripts/test-dashboard-role-matrix.js
 ```
 
-Expected: ADMIN/WAKA/TU receive only macro DTOs; TU receives no student data; Walikelas sees all and only assigned classes; Guru sees all and only assigned schedule/subject data; MURID and unknown roles receive 403; malformed payloads return 400; query failures return a safe 500 without throwing or exposing SQL details.
+Expected: ADMIN/TU receive only operational macro DTOs; WAKA_KURIKULUM is denied from those operational contracts and receives only its separate executive aggregate contract; TU receives no student data; Walikelas sees all and only assigned classes; Guru sees all and only assigned schedule/subject data; MURID and unknown roles receive 403; malformed payloads return 400; query failures return a safe 500 without throwing or exposing SQL details.
 
 ## Browser, Mobile, and Accessibility Checks
 

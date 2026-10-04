@@ -55,10 +55,16 @@ data without repeating successful entries or losing auditability.
 	and the assessment matrix, constrained by the teacher's assigned schedule.
 - Walikelas views and printed recapitulations are limited to assigned classes
 	and provide subject-level grade aggregates as an e-Rapor foundation.
+- Walikelas attendance workflow operates on a "Default Present" UI mechanism, where all students are marked present initially, requiring action only for anomalies (Sakit, Izin, Alpa, or mid-day Izin Pulang).
 - TU recapitulations aggregate teacher attendance only after teaching activity
 	has been validated; they support, but do not themselves authorize, payroll.
+- TU attendance workflow automatically aggregates verified teacher presence daily to compute transport allowance formulas directly linked to payroll exports.
+- TU attendance workflows MUST support dual-input channels: automated ESP32-based hardware logs and web-based manual requests for remote (WFH) scenarios.
+- All attendance records from both channels require explicit verification and approval ("Apply/ACC") by the Operator TU before being finalized.
+- Transport rates MUST be dynamically configurable per staff member or structural role (including OB, TU Staff, and Waka) by authorized TU personnel to support automated payroll calculation.
 - Attendance, teaching status, grades, schedules, alerts, and exports MUST use
 	consistent academic identities and periods.
+
 
 ## Delivery and Verification Workflow
 
@@ -76,6 +82,11 @@ data without repeating successful entries or losing auditability.
 	schemas. Before delivery, reviewers MUST confirm that the relevant principle
 	and its acceptance evidence are covered.
 
+### VI. Component Reuse and Template Leverage
+The system MUST prioritize utilizing existing UI components, styles, layout wrappers, and primitives provided by the TailwindAdmin template before creating any new UI elements from scratch. 
+- AI Agents MUST scan `src/components/ui`, `src/app/css`, and domain components to check for usable patterns (e.g., TanStack Table for attendance lists, ApexCharts for curriculum load, and existing form layouts for authentication) before generating code.
+- Custom implementations are strictly forbidden unless the required architectural primitive or UI capability is entirely absent from the template's ecosystem.
+
 ## Governance
 
 This constitution is the governing product and engineering standard for Guruku
@@ -88,7 +99,8 @@ principles and record approved exceptions with their rationale and scope. A
 constitution amendment MUST update the version and last-amended date, preserve
 the original ratification date, and include a sync impact report for review.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-09-29
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-04
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
