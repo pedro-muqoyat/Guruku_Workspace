@@ -1,49 +1,27 @@
-'use client'
-
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import { GoDot } from 'react-icons/go'
 import { format } from 'date-fns'
-import { useEffect, useContext } from 'react'
-import { BlogContext, BlogContextProps } from '@/app/context/blog-context/index'
-import { BlogPostType } from '@/app/(DashboardLayout)/types/blog'
+import type { BlogPostDTO } from '@/lib/template-apps/data'
 import { Card } from '@/components/ui/card'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 
 interface Btype {
-  post: BlogPostType
+  post: BlogPostDTO
   index: number
 }
 
 const BlogFeaturedCard = ({ post, index }: Btype) => {
   // Destructure with default values to avoid undefined
   const {
-    coverImg = '',
+    cover_image: coverImg = '',
     title = '',
-    view = 0,
     comments = [],
     category = '',
-    author,
-    createdAt = new Date(),
+    published_at,
   } = post
 
-  const linkTo = title
-    .toLowerCase()
-    .replace(/ /g, '-')
-    .replace(/[^\w-]+/g, '')
-
   const mainPost = index === 0
-
-  const { setLoading }: BlogContextProps = useContext(BlogContext)
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 700)
-
-    return () => clearTimeout(timer)
-  }, [setLoading])
 
   return (
     <>
@@ -70,15 +48,6 @@ const BlogFeaturedCard = ({ post, index }: Btype) => {
             {/* Content */}
             <div className='absolute inset-0 p-6 flex flex-col justify-between'>
               <div className='flex justify-between items-center'>
-                <Avatar className='h-10 w-10'>
-                  {author?.avatar ? (
-                    <AvatarImage src={author.avatar} alt={author.name || '?'} />
-                  ) : null}
-                  <AvatarFallback>
-                    {author?.name ? author.name[0] : '?'}
-                  </AvatarFallback>
-                </Avatar>
-
                 {category && (
                   <Badge className='rounded-md bg-primary text-white'>
                     {category}
@@ -88,19 +57,16 @@ const BlogFeaturedCard = ({ post, index }: Btype) => {
 
               <div>
                 <h2 className='text-2xl text-white my-6'>
-                  <Link href={`/apps/blog/detail/${linkTo}`}>{title}</Link>
+                  <Link href={`/apps/blog/detail/${post.slug}`}>{title}</Link>
                 </h2>
                 <div className='flex gap-3'>
-                  <div className='flex gap-2 items-center text-white text-[15px]'>
-                    <Icon icon='tabler:eye' height='18' /> {view}
-                  </div>
                   <div className='flex gap-2 items-center text-white text-[15px]'>
                     <Icon icon='tabler:message-2' height='18' />{' '}
                     {comments.length}
                   </div>
                   <div className='ms-auto flex gap-2 items-center text-white text-[15px]'>
                     <GoDot size='16' />
-                    <small>{format(new Date(createdAt), 'E, MMM d')}</small>
+                    <small>{published_at ? format(new Date(published_at), 'E, MMM d') : ''}</small>
                   </div>
                 </div>
               </div>

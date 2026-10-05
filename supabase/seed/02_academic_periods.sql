@@ -1,0 +1,2 @@
+-- The current migrations do not define public.academic_periods.
+-- Add the period seed only after a migration establishes its columns and keys.

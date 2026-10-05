@@ -5,45 +5,30 @@ import { Icon } from '@iconify/react'
 import CardBox from '../../shared/CardBox'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import {
-  Tooltip,
-  TooltipProvider,
-  TooltipTrigger,
-  TooltipContent,
-} from '@/components/ui/tooltip'
 
-import { BlogPostType } from '@/app/(DashboardLayout)/types/blog'
+import type { BlogPostDTO } from '@/lib/template-apps/data'
 
 interface Btype {
-  post: BlogPostType
+  post: BlogPostDTO
   index?: number
 }
 
 const BlogCard = ({ post }: Btype) => {
   // Destructure with default values for optional fields
   const {
-    coverImg = '',
+    cover_image: coverImg = '',
     title = '',
-    view = 0,
     comments = [],
     category = '',
-    author,
-    createdAt = new Date(),
+    published_at,
   } = post
-
-  // Generate link slug safely
-  const linkTo = title
-    .toLowerCase()
-    .replace(/ /g, '-')
-    .replace(/[^\w-]+/g, '')
 
   return (
     <div className='lg:col-span-4 md:col-span-6 col-span-12'>
       <CardBox className='p-0 overflow-hidden group card-hover'>
         <div className='relative'>
-          <Link href={`/apps/blog/detail/${linkTo}`}>
+          <Link href={`/apps/blog/detail/${post.slug}`}>
             <div className='overflow-hidden h-[240px]'>
               {coverImg ? (
                 <Image
@@ -62,23 +47,6 @@ const BlogCard = ({ post }: Btype) => {
             </Badge>
           </Link>
 
-          <div className='flex justify-between items-center -mt-6 px-6'>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Avatar className='cursor-pointer w-10 h-10'>
-                    {author?.avatar ? (
-                      <AvatarImage src={author.avatar} alt={author.name || '?'} />
-                    ) : null}
-                    <AvatarFallback>
-                      {author?.name ? author.name[0] : '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                </TooltipTrigger>
-                <TooltipContent>{author?.name || 'Unknown author'}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
         </div>
 
         <div className='px-6 pb-6'>
@@ -89,22 +57,19 @@ const BlogCard = ({ post }: Btype) => {
           )}
 
           <h5 className='text-xl py-6 group-hover:text-primary'>
-            <Link href={`/apps/blog/detail/${linkTo}`} className='line-clamp-2'>
+            <Link href={`/apps/blog/detail/${post.slug}`} className='line-clamp-2'>
               {title}
             </Link>
           </h5>
 
           <div className='flex gap-3'>
             <div className='flex gap-2 items-center text-muted-foreground text-[15px]'>
-              <Icon icon='tabler:eye' height='18' className='text-foreground' /> {view}
-            </div>
-            <div className='flex gap-2 items-center text-muted-foreground text-[15px]'>
               <Icon icon='tabler:message-2' height='18' className='text-foreground' />{' '}
               {comments.length}
             </div>
             <div className='ms-auto flex gap-2 items-center text-muted-foreground text-[15px]'>
               <GoDot size='16' className='text-foreground' />
-              <small>{format(new Date(createdAt), 'E, MMM d')}</small>
+              <small>{published_at ? format(new Date(published_at), 'E, MMM d') : ''}</small>
             </div>
           </div>
         </div>

@@ -1,5 +1,30 @@
+# supabase/config.toml
 project_id = "guruku-workspace"
+
+[api]
+# Limitasi port dan alokasi batas koneksi untuk mencegah bottleneck API
+port = 54321
+max_rows = 1000 # Batasi pengembalian data untuk mencegah over-fetching memori
+
+[auth]
+# Standar keamanan JWT untuk mencegah token basi disalahgunakan
+jwt_expiry = 3600 # 1 Jam kedaluwarsa
+
+[db]
+# Proteksi port lokal
+port = 54322
+
+[db.pooler]
+# Aktifkan Supavisor (connection pooling) agar database tidak crash saat diakses banyak klien (Waka, TU, Guru)
+enabled = true
+pool_mode = "transaction"
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed.sql"]
+# Arsitektur Modular: Pecah seed menjadi domain spesifik yang dieksekusi secara berurutan
+sql_paths = [
+    "./seed/01_roles_permissions.sql",
+    "./seed/02_academic_periods.sql",
+    "./seed/03_dummy_users.sql",
+    "./seed/04_dummy_schedules.sql"
+]

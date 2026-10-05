@@ -11,8 +11,8 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 interface NotelistProps {
   notes: NotesType[];
   loading: boolean;
-  onSelectNote: (noteId: number) => void;
-  onDeleteNote: (noteId: number) => void;
+  onSelectNote: (noteId: string) => void;
+  onDeleteNote: (noteId: string) => void;
 }
 
 // Map colors to Tailwind classes
@@ -26,7 +26,7 @@ const colorClassMap: Record<string, string> = {
 
 const Notelist: React.FC<NotelistProps> = ({ notes, loading, onSelectNote, onDeleteNote }) => {
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [activeNoteId, setActiveNoteId] = useState<number | null>(null);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (notes.length > 0) {
@@ -35,13 +35,12 @@ const Notelist: React.FC<NotelistProps> = ({ notes, loading, onSelectNote, onDel
   }, [notes]);
 
   const filteredNotes = notes.filter((note) => {
-    if (note.deleted) return false;
     if (!note.title) return false;
     if (searchTerm === "") return true;
     return note.title.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  const handleNoteClick = (noteId: number) => {
+  const handleNoteClick = (noteId: string) => {
     setActiveNoteId(noteId);
     onSelectNote(noteId);
   };
@@ -72,9 +71,7 @@ const Notelist: React.FC<NotelistProps> = ({ notes, loading, onSelectNote, onDel
                 >
                   <h6 className="text-base truncate">{note.title}</h6>
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-ld">
-                      {note.datef ? new Date(note.datef).toLocaleDateString() : "-"}
-                    </p>
+                    <p className="text-xs text-ld">{new Date(note.updated_at).toLocaleDateString()}</p>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button

@@ -1,15 +1,15 @@
-'use client'
-import React from 'react'
 import BlogListing from '@/app/components/apps/blog/BlogListing'
-import { BlogProvider } from '@/app/context/blog-context/index'
+import { getPublishedBlogPosts } from '@/lib/template-apps/data'
 
-const BlogPost = () => {
+const BlogPost = async () => {
+  const posts = await getPublishedBlogPosts()
+
+  if (posts.length === 0) {
+    return <p className="py-6 text-center text-muted-foreground">Belum ada artikel yang diterbitkan.</p>
+  }
+
   return (
-    <>
-      <BlogProvider>
-        <BlogListing />
-      </BlogProvider>
-    </>
+    <BlogListing posts={posts} />
   )
 }
 

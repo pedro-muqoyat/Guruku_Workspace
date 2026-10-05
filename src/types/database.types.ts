@@ -48,6 +48,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"blog_comments": {
+                  Row: {
+                    "author_name": string,"content": string,"created_at": string,"id": string,"post_slug": string,"user_id": string
+                  }
+                  Insert: {
+                    "author_name"?: string,"content": string,"created_at"?: string,"id"?: string,"post_slug": string,"user_id": string
+                  }
+                  Update: {
+                    "author_name"?: string,"content"?: string,"created_at"?: string,"id"?: string,"post_slug"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "blog_comments_post_slug_fkey"
+      columns: ["post_slug"]
+isOneToOne: false
+      referencedRelation: "blog_posts"
+      referencedColumns: ["slug"]
+    },{
+      foreignKeyName: "blog_comments_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "user_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"blog_posts": {
+                  Row: {
+                    "category": string,"content": string,"cover_image": string | null,"created_at": string,"is_featured": boolean,"published_at": string | null,"slug": string,"title": string
+                  }
+                  Insert: {
+                    "category": string,"content": string,"cover_image"?: string | null,"created_at"?: string,"is_featured"?: boolean,"published_at"?: string | null,"slug": string,"title": string
+                  }
+                  Update: {
+                    "category"?: string,"content"?: string,"cover_image"?: string | null,"created_at"?: string,"is_featured"?: boolean,"published_at"?: string | null,"slug"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"class_sessions": {
                   Row: {
                     "created_at": string,"id": string,"schedule_id": string,"session_date": string,"state": Database["public"]['Enums']["session_status"],"total_jp": number
@@ -79,6 +117,25 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"notes": {
+                  Row: {
+                    "color": string,"created_at": string,"id": string,"owner_id": string,"title": string,"updated_at": string
+                  }
+                  Insert: {
+                    "color"?: string,"created_at"?: string,"id"?: string,"owner_id": string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "color"?: string,"created_at"?: string,"id"?: string,"owner_id"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notes_owner_id_fkey"
+      columns: ["owner_id"]
+isOneToOne: false
+      referencedRelation: "user_profiles"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"notifications": {
                   Row: {
@@ -216,6 +273,25 @@ isOneToOne: false
       columns: ["session_id"]
 isOneToOne: true
       referencedRelation: "class_sessions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"tickets": {
+                  Row: {
+                    "created_at": string,"id": string,"owner_id": string,"status": string,"ticket_date": string,"ticket_description": string,"ticket_title": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"owner_id": string,"status"?: string,"ticket_date"?: string,"ticket_description": string,"ticket_title": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"owner_id"?: string,"status"?: string,"ticket_date"?: string,"ticket_description"?: string,"ticket_title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tickets_owner_id_fkey"
+      columns: ["owner_id"]
+isOneToOne: false
+      referencedRelation: "user_profiles"
       referencedColumns: ["id"]
     }
                   ]

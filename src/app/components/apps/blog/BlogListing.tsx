@@ -1,46 +1,18 @@
-'use client'
-
-import { useContext } from 'react'
-import { orderBy } from 'lodash'
 import BlogCard from './BlogCard'
-import { BlogContext } from '@/app/context/blog-context'
 import BlogFeaturedCard from './BlogFeaturedCard'
-import { BlogPostType } from '@/app/(DashboardLayout)/types/blog'
+import type { BlogPostDTO } from '@/lib/template-apps/data'
 
-const BlogListing = () => {
-  const { posts, sortBy } = useContext(BlogContext)
-
-  // Function to filter blog posts based on sorting criteria
-  const filterBlogs = (posts: BlogPostType[], sortBy: string) => {
-    let filteredPosts = [...posts]
-
-    if (sortBy === 'newest') {
-      filteredPosts = orderBy(filteredPosts, ['createdAt'], ['desc'])
-    } else if (sortBy === 'oldest') {
-      filteredPosts = orderBy(filteredPosts, ['createdAt'], ['asc'])
-    } else if (sortBy === 'popular') {
-      filteredPosts = orderBy(filteredPosts, ['view'], ['desc'])
-    }
-
-    // Filter out featured posts
-    return filteredPosts.filter((post) => !post.featured)
-  }
-
-  // Function to filter featured posts
-  const filterFeaturedPosts = (posts: BlogPostType[]) => {
-    return posts.filter((post) => post.featured)
-  }
-
-  const blogPosts = filterBlogs(posts, sortBy)
-  const featuredPosts = filterFeaturedPosts(posts)
+const BlogListing = ({ posts }: { posts: BlogPostDTO[] }) => {
+  const blogPosts = posts.filter((post) => !post.is_featured)
+  const featuredPosts = posts.filter((post) => post.is_featured)
 
   return (
     <div className='grid grid-cols-12 gap-6'>
       {featuredPosts.map((post, index) => (
-        <BlogFeaturedCard index={index} post={post} key={post.id} />
+        <BlogFeaturedCard index={index} post={post} key={post.slug} />
       ))}
       {blogPosts.map((post) => (
-        <BlogCard post={post} key={post.id} />
+        <BlogCard post={post} key={post.slug} />
       ))}
     </div>
   )

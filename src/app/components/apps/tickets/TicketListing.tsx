@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { format } from "date-fns";
 import { Icon } from "@iconify/react";
 import { TicketType } from "@/app/(DashboardLayout)/types/ticket";
@@ -22,14 +21,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface TicketListingProps {
   tickets: TicketType[];
-  deleteTicket: (id: number) => void;
+  deleteTicket: (id: string) => void;
   searchTickets: (term: string) => void;
   ticketSearch: string;
   filter: string;
+  isPending: boolean;
 }
 
 const TicketListing: React.FC<TicketListingProps> = ({
@@ -38,8 +38,8 @@ const TicketListing: React.FC<TicketListingProps> = ({
   searchTickets,
   ticketSearch,
   filter,
+  isPending,
 }) => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const router = useRouter();
 
   const getVisibleTickets = (
@@ -51,16 +51,15 @@ const TicketListing: React.FC<TicketListingProps> = ({
 
     return tickets.filter(
       (ticket) =>
-        !ticket.deleted &&
-        (filter === "total_tickets" || ticket.Status === filter) &&
-        ticket.ticketTitle.toLowerCase().includes(lowerSearch)
+        (filter === "total_tickets" || ticket.status === filter) &&
+        ticket.ticket_title.toLowerCase().includes(lowerSearch)
     );
   };
 
   const visibleTickets = getVisibleTickets(tickets, filter, ticketSearch);
 
   const ticketBadge = (ticket: TicketType) => {
-    switch (ticket.Status) {
+    switch (ticket.status) {
       case "Open":
         return "lightSuccess";
       case "Closed":
@@ -103,45 +102,42 @@ const TicketListing: React.FC<TicketListingProps> = ({
             <TableRow>
               <TableHead>Id</TableHead>
               <TableHead>Ticket</TableHead>
-              <TableHead>Assigned To</TableHead>
+              <TableHead>Created By</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-end">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visibleTickets.map((ticket) => (
-              <TableRow key={ticket.Id}>
-                <TableCell>{ticket.Id}</TableCell>
+            {visibleTickets.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">Belum ada tiket untuk filter ini.</TableCell></TableRow>
+            ) : visibleTickets.map((ticket) => (
+              <TableRow key={ticket.id}>
+                <TableCell className="font-mono text-xs">{ticket.id.slice(0, 8)}</TableCell>
 
                 <TableCell className="max-w-md">
-                  <h6 className="text-base truncate">{ticket.ticketTitle}</h6>
+                  <h6 className="text-base truncate">{ticket.ticket_title}</h6>
                   <p className="text-sm text-muted-foreground truncate">
-                    {ticket.ticketDescription}
+                    {ticket.ticket_description}
                   </p>
                 </TableCell>
 
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={ticket.thumb} alt={ticket.AgentName} />
-                      <AvatarFallback>
-                        {ticket.AgentName?.charAt(0) || "A"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <h6 className="text-base">{ticket.AgentName}</h6>
+                    <Avatar><AvatarFallback>{ticket.owner_name.charAt(0)}</AvatarFallback></Avatar>
+                    <h6 className="text-base">{ticket.owner_name}</h6>
                   </div>
                 </TableCell>
 
                 <TableCell>
                   <Badge variant={`${ticketBadge(ticket)}`} className="rounded-md">
-                    {ticket.Status}
+                    {ticket.status}
                   </Badge>
                 </TableCell>
 
                 <TableCell>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(ticket.Date), "E, MMM d")}
+                    {format(new Date(ticket.ticket_date), "E, MMM d")}
                   </p>
                 </TableCell>
 
@@ -153,7 +149,9 @@ const TicketListing: React.FC<TicketListingProps> = ({
                           variant="ghost"
                           size="icon"
                           className="hover:text-red-600"
-                          onClick={() => deleteTicket(ticket.Id)}
+                          aria-label="Delete ticket"
+                          disabled={isPending}
+                          onClick={() => deleteTicket(ticket.id)}
                         >
                           <Icon icon="tabler:trash" height="18" />
                         </Button>

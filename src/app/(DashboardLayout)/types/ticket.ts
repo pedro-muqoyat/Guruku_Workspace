@@ -1,11 +1,9 @@
 export interface TicketType {
-  Id: number;
-  ticketTitle: string;
-  ticketDescription: string;
-  Status: string;
-  Label: string;
-  thumb: string;
-  AgentName: string;
-  Date: Date;
-  deleted: boolean;
+  id: string;
+  ticket_title: string;
+  ticket_description: string;
+  status: string;
+  ticket_date: string;
+  created_at: string;
+  owner_name: string;
 }

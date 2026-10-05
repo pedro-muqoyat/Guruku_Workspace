@@ -12,12 +12,12 @@ interface ColorType {
 
 interface NoteContentProps {
   note: NotesType | null;
-  updateNote: (id: number, title: string, color: string) => void;
+  updateNote: (id: string, title: string, color: string) => void;
+  isPending: boolean;
 }
 
-const NoteContent: React.FC<NoteContentProps> = ({ note, updateNote }) => {
+const NoteContent: React.FC<NoteContentProps> = ({ note, updateNote, isPending }) => {
   const [title, setTitle] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (note?.title) setTitle(note.title);
@@ -25,7 +25,6 @@ const NoteContent: React.FC<NoteContentProps> = ({ note, updateNote }) => {
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTitle(e.target.value);
-    setIsEditing(true);
   };
 
   const handleColorChange = (color: string) => {
@@ -35,7 +34,6 @@ const NoteContent: React.FC<NoteContentProps> = ({ note, updateNote }) => {
 
   const handleBlur = () => {
     if (!note) return;
-    setIsEditing(false);
     updateNote(note.id, title, note.color || "primary");
   };
 
@@ -64,21 +62,26 @@ const NoteContent: React.FC<NoteContentProps> = ({ note, updateNote }) => {
           value={title}
           onChange={handleTitleChange}
           onBlur={handleBlur}
+          disabled={isPending}
           className="w-full p-6 form-control-textarea"
         />
         <br />
         <h6 className="text-base mb-3">Change Note Color</h6>
         <div className="flex gap-2 items-center">
           {colorOptions.map((color) => (
-            <div
+            <button
+              type="button"
               key={color.id}
               onClick={() => handleColorChange(color.disp)}
+              aria-label={`Set note color to ${color.disp}`}
+              aria-pressed={note.color === color.disp}
+              disabled={isPending}
               className={`h-7 w-7 flex justify-center items-center rounded-full cursor-pointer 
                 ${note.color === color.disp ? "border-2 border-black" : ""} 
                 bg-${color.disp}`}
             >
               {note.color === color.disp && <TbCheck size={18} className="text-white" />}
-            </div>
+            </button>
           ))}
         </div>
       </div>

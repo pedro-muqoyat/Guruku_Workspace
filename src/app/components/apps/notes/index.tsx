@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useTransition } from 'react'
 import CardBox from '@/app/components/shared/CardBox'
 import NotesSidebar from '@/app/components/apps/notes/NotesSidebar'
 import NoteContent from '@/app/components/apps/notes/NoteContent'
 import { Icon } from '@iconify/react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { NotesType } from '@/app/(DashboardLayout)/types/apps/notes'
 import AddNotes from './AddNotes'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { createNote, deleteNote, updateNote } from '@/app/actions/notes'
 
 interface ColorType {
   id: number
@@ -17,34 +18,29 @@ interface ColorType {
   lineColor?: string
 }
 
-const NotesApp = () => {
+const NotesApp = ({
+  initialNotes,
+  initialSelectedNoteId,
+}: {
+  initialNotes: NotesType[]
+  initialSelectedNoteId: string | null
+}) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [notes, setNotes] = useState<NotesType[]>([])
-  const [loading, setLoading] = useState(false)
-  const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null)
+  const [notes, setNotes] = useState<NotesType[]>(initialNotes)
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(initialSelectedNoteId)
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
   const location = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   const handleClose = () => setIsOpen(false)
 
-  const fetchNotes = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/notes')
-      const data = await response.json()
-      setNotes(data?.data || [])
-    } catch (err) {
-      console.error('Failed to fetch notes:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleResetNotes = async () => {
-    await fetch('/api/notes', {
-      method: 'GET',
-      headers: { browserRefreshed: 'true' },
-    })
-    fetchNotes()
+  const selectNote = (id: string) => {
+    setSelectedNoteId(id)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('noteId', id)
+    router.replace(`${location}?${params.toString()}`, { scroll: false })
   }
 
   const colorVariation: ColorType[] = [
@@ -55,56 +51,43 @@ const NotesApp = () => {
     { id: 5, lineColor: 'secondary', disp: 'secondary' },
   ]
 
-  useEffect(() => {
-    const isPageRefreshed = sessionStorage.getItem('isPageRefreshed')
-    if (isPageRefreshed === 'true') {
-      sessionStorage.removeItem('isPageRefreshed')
-      handleResetNotes()
-    } else {
-      fetchNotes()
-    }
-  }, [location])
-
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      sessionStorage.setItem('isPageRefreshed', 'true')
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [])
-
-  const updateNote = (id: number, title: string, color: string) => {
-    setNotes(prev =>
-      prev.map(note => (note.id === id ? { ...note, title, color } : note))
-    )
-
-    fetch(`/api/notes/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, color }),
-    }).catch(err => console.error('Failed to update note:', err))
+  const handleUpdateNote = (id: string, title: string, color: string) => {
+    const previousNotes = notes
+    setNotes((current) => current.map((note) => note.id === id ? { ...note, title, color } : note))
+    startTransition(async () => {
+      const result = await updateNote(id, { title, color })
+      if (!result.success) {
+        setNotes(previousNotes)
+        setError(result.error)
+      }
+    })
   }
 
-  useEffect(() => {
-    if (notes.length > 0 && selectedNoteId === null) {
-      setSelectedNoteId(notes[0].id)
-    }
-  }, [notes, selectedNoteId])
-
   const addNote = async (note: { title: string; color: string }) => {
-    try {
-      const response = await fetch('/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(note),
-      })
-      const result = await response.json()
-      const newNote: NotesType = result.data
-      setNotes(prev => [...prev, newNote])
-      setSelectedNoteId(newNote.id)
-    } catch (err) {
-      console.error('Failed to add note:', err)
-    }
+    startTransition(async () => {
+      const result = await createNote(note)
+      if (!result.success) {
+        setError(result.error)
+        return
+      }
+      setNotes((current) => [result.data, ...current])
+      selectNote(result.data.id)
+    })
+  }
+
+  const handleDeleteNote = (id: string) => {
+    const previousNotes = notes
+    const previousSelected = selectedNoteId
+    setNotes((current) => current.filter((note) => note.id !== id))
+    if (selectedNoteId === id) setSelectedNoteId(null)
+    startTransition(async () => {
+      const result = await deleteNote(id)
+      if (!result.success) {
+        setNotes(previousNotes)
+        setSelectedNoteId(previousSelected)
+        setError(result.error)
+      }
+    })
   }
 
   return (
@@ -119,24 +102,18 @@ const NotesApp = () => {
             >
               <NotesSidebar
                 notes={notes}
-                loading={loading}
-                onSelectNote={(id: number) => setSelectedNoteId(id)}
-                onDeleteNote={(id: number) => {
-                  setNotes(prev => prev.filter(n => n.id !== id))
-                  if (selectedNoteId === id) setSelectedNoteId(null)
-                }}
+                loading={isPending}
+                onSelectNote={selectNote}
+                onDeleteNote={handleDeleteNote}
               />
             </SheetContent>
           </Sheet>
           <div className='max-w-[320px] h-auto lg:block hidden'>
             <NotesSidebar
               notes={notes}
-              loading={loading}
-              onSelectNote={(id: number) => setSelectedNoteId(id)}
-              onDeleteNote={(id: number) => {
-                setNotes(prev => prev.filter(n => n.id !== id))
-                if (selectedNoteId === id) setSelectedNoteId(null)
-              }}
+              loading={isPending}
+              onSelectNote={selectNote}
+              onDeleteNote={handleDeleteNote}
             />
           </div>
         </div>
@@ -157,10 +134,12 @@ const NotesApp = () => {
             <AddNotes colors={colorVariation} addNote={addNote} />
           </div>
 
-          <NoteContent
+              <NoteContent
             note={notes.find(n => n.id === selectedNoteId) || null}
-            updateNote={updateNote}
+                updateNote={handleUpdateNote}
+                isPending={isPending}
           />
+              {error && <p role="alert" className="px-6 py-3 text-sm text-destructive">{error}</p>}
         </div>
       </div>
     </CardBox>

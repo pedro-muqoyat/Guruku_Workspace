@@ -1,7 +1,7 @@
 export interface NotesType {
-  id: number
-  color?: string
-  title?: string
-  datef?: string
-  deleted: boolean
+  id: string
+  color: string
+  title: string
+  created_at: string
+  updated_at: string
 }
